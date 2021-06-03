@@ -22,7 +22,7 @@ services:
       - ./api/app/:/go/src/app
     command: bash -c "./main"
 
-  go-static:
+  static:
     build: ./static/pro
     volumes:
       - ./static/app/:/go/src/app
