@@ -29,13 +29,13 @@ services:
     build: ./api/dev
     volumes:
       - ./api/app/:/go/src/app
-    command: bash -c "go build -ldflags '-s -w' ./main.go && air && go run ."
+    command: bash -c "go mod download && go build -ldflags '-s -w' ./main.go && air && go run ."
  
   static:
     build: ./static/dev
     volumes:
       - ./static/app/:/go/src/app
-    command: bash -c "go build -ldflags '-s -w' ./main.go && air && go run ."
+    command: bash -c "go mod download && go build -ldflags '-s -w' ./main.go && air && go run ."
  
   frontend:
     build: ./frontend
@@ -61,7 +61,6 @@ services:
 
   nginx-proxy:
     image: jwilder/nginx-proxy:alpine
-    container_name: nginx-proxy
     restart: always
     ports:
       - "80:80"
@@ -75,7 +74,6 @@ services:
 
   letsencrypt:
     image: jrcs/letsencrypt-nginx-proxy-companion
-    container_name: nginx-proxy-lets
     volumes_from:
       - nginx-proxy
     volumes:
