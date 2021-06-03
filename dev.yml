@@ -35,7 +35,7 @@ services:
     build: ./static/dev
     volumes:
       - ./static/app/:/go/src/app
-    command: bash -c "go mod download && go build -ldflags '-s -w' ./main.go && air && go run ."
+    command: bash -c "go mod download && go build -ldflags '-s -w' ./main.go && ./main"
  
   frontend:
     build: ./frontend
