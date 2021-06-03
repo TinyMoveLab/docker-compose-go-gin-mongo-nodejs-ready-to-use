@@ -28,7 +28,7 @@ services:
       - ./static/app/:/go/src/app
     command: bash -c "./main"
 
-  node-frontend:
+  frontend:
     build: ./frontend
     volumes:
       - ./frontend/app:/usr/src/app
