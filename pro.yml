@@ -1,0 +1,76 @@
+version: '3.1'
+#pro.yml
+
+services:
+
+# database 
+
+  mongo:
+    image: mongo
+    restart: always
+    volumes:
+      - ./mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+#web service
+   
+  api:
+    build: ./api/pro
+    volumes:
+      - ./api/app/:/go/src/app
+    command: bash -c "./main"
+
+  go-static:
+    build: ./static/pro
+    volumes:
+      - ./static/app/:/go/src/app
+    command: bash -c "./main"
+
+  node-frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend/app:/usr/src/app
+    command: bash -c "npm install && DEBUG=app:* npm start"
+    
+
+# Proxy 
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    environment:
+      VIRTUAL_HOST : test.tinylab.page
+      LETSENCRYPT_HOST : test.tinylab.page
+      LETSENCRYPT_EMAIL : test@test.tinylab.page
+      REDIRECT_LOCATION : "https://test.tinylab.page"
+  
+  nginx-proxy:
+    image: jwilder/nginx-proxy:alpine
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./letsencrypt/vhost:/etc/nginx/vhost.d
+      - ./letsencrypt/html:/usr/share/nginx/html
+      - ./letsencrypt/certs:/etc/nginx/certs:ro
+      - ./letsencrypt/dhparam:/etc/nginx/dhparam
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: nginx-proxy-lets
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - ./letsencrypt/certs:/etc/nginx/certs:rw
+      - ./letsencrypt/vhost:/etc/nginx/vhost.d
+      - ./letsencrypt/html:/usr/share/nginx/html
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - nginx-proxy

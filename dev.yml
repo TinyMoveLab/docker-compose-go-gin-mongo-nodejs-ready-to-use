@@ -1,0 +1,87 @@
+version: '3.1'
+#dev.yml
+
+services:
+
+# database 
+
+  mongo:
+    image: mongo
+    restart: always
+    volumes:
+      - ./mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+
+# #web service
+   
+  api:
+    build: ./api/dev
+    volumes:
+      - ./api/app/:/go/src/app
+    command: bash -c "go build -ldflags '-s -w' ./main.go && air && go run ."
+ 
+  static:
+    build: ./static/dev
+    volumes:
+      - ./static/app/:/go/src/app
+    command: bash -c "go build -ldflags '-s -w' ./main.go && air && go run ."
+ 
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend/app:/usr/src/app
+    command: bash -c "npm install -g nodemon && npm install && DEBUG=app:* nodemon npm start"
+    
+
+# Build Sass
+
+  
+# Proxy 
+
+  nginx:  
+    image: nginx:alpine
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    environment:
+      - VIRTUAL_HOST=localhost
+      - LETSENCRYPT_HOST=localhost
+      - LETSENCRYPT_EMAIL=email@localhost
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy:alpine
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./letsencrypt/vhost:/etc/nginx/vhost.d
+      - ./letsencrypt/html:/usr/share/nginx/html
+      - ./letsencrypt/certs:/etc/nginx/certs:ro
+      - ./letsencrypt/dhparam:/etc/nginx/dhparam
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: nginx-proxy-lets
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - ./letsencrypt/certs:/etc/nginx/certs:rw
+      - ./letsencrypt/vhost:/etc/nginx/vhost.d
+      - ./letsencrypt/html:/usr/share/nginx/html
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - nginx-proxy
